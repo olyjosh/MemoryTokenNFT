@@ -32,7 +32,7 @@ const CARDS = [
 ]
 
 let CARD_ARRAY = [...CARDS]
-let level = 10;
+let level = 3;
 
 class App extends Component {
 
