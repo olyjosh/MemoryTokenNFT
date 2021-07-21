@@ -1,34 +1,10 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import Web3 from 'web3'
 import './App.css';
 import MemoryToken from '../abis/MemoryToken.json'
 import brain from '../brain.png'
 
-const CARD_ARRAY = [
-    {
-        name: 'fries',
-        img: '/images/fries.png'
-    },
-    {
-        name: 'cheeseburger',
-        img: '/images/cheeseburger.png'
-    },
-    {
-        name: 'ice-cream',
-        img: '/images/ice-cream.png'
-    },
-    {
-        name: 'pizza',
-        img: '/images/pizza.png'
-    },
-    {
-        name: 'milkshake',
-        img: '/images/milkshake.png'
-    },
-    {
-        name: 'hotdog',
-        img: '/images/hotdog.png'
-    },
+const CARDS = [
     {
         name: 'fries',
         img: '/images/fries.png'
@@ -55,6 +31,9 @@ const CARD_ARRAY = [
     }
 ]
 
+let CARD_ARRAY = [...CARDS]
+let level = 10;
+
 class App extends Component {
 
     async loadWeb3() {
@@ -73,13 +52,17 @@ class App extends Component {
     componentDidMount() {
         this.loadWeb3()
         this.loadBlockingChainData()
-        this.setState({cardArray: CARD_ARRAY.sort(() => 0.5 - Math.random())})
+
+        for (let i = 0; i < level; i++) {
+            CARD_ARRAY.push(...CARDS)
+        }
+        this.setState({ cardArray: CARD_ARRAY.sort(() => 0.5 - Math.random()) })
     }
 
     async loadBlockingChainData() {
         const web3 = window.web3
         const accounts = await web3.eth.getAccounts()
-        this.setState({account: accounts[0]})
+        this.setState({ account: accounts[0] })
 
         const networkId = await web3.eth.net.getId()
         const networkData = MemoryToken.networks[networkId]
@@ -89,9 +72,9 @@ class App extends Component {
             const abi = MemoryToken.abi
             const address = networkData.address
             const token = web3.eth.Contract(abi, address)
-            this.setState({token})
+            this.setState({ token })
             const totalSupply = await token.methods.totalSupply().call();
-            this.setState({totalSupply})
+            this.setState({ totalSupply })
 
             // it increments owner balance
             const balanceOf = await token.methods.balanceOf(accounts[0]).call();
@@ -127,7 +110,7 @@ class App extends Component {
             cardsChosenId: [...this.state.cardsChosenId, cardId]
         })
 
-        if (alreadyChosen === 1) {
+        if (alreadyChosen === level) {
             setTimeout(() => this.checkForMatch(), 100)
         }
     }
@@ -138,27 +121,43 @@ class App extends Component {
         if (optionOneId === optionTwoId) {
             // flip back the card
             alert('Same Image clicked')
-        } else if (this.state.cardsChosen[0] === this.state.cardsChosen[1]) {
-            alert('Found a match ')
-
-            this.state
-                .token
-                .methods
-                .mint(this.state.account, window.location.origin + CARD_ARRAY[optionOneId].img.toString())
-                .send({from: this.state.account})
-                .on('transactionHash', () => {
-                    this.setState({
-                        cardsWon: [...this.state.cardsWon, optionOneId, optionTwoId],
-                        tokenURIs: [...this.state.tokenURIs, CARD_ARRAY[optionOneId].img]
-                    })
-                })
-                .on('error', (error)=>{
-                    console.log(error)
-                })
+            // } else if (this.state.cardsChosen[0] === this.state.cardsChosen[1]) {
         } else {
-            // alert('Sorry dude, try again')
+            let isMatch = true
+            for (let i = 0; i < this.state.cardsChosen.length; i++) {
+                for (let j = i; j < this.state.cardsChosen.length; j++) {
+                    if (this.state.cardsChosen[i] !== this.state.cardsChosen[j]) {
+                        console.log(this.state.cardsChosen)
+                        isMatch = false
+                        break
+                    }
+                }
+                if (isMatch === false)
+                    break
+            }
+
+            if(isMatch === true){
+                alert('Found a match ')
+
+                this.state
+                    .token
+                    .methods
+                    .mint(this.state.account, window.location.origin + CARD_ARRAY[optionOneId].img.toString())
+                    .send({ from: this.state.account })
+                    .on('transactionHash', () => {
+                        this.setState({
+                            cardsWon: [...this.state.cardsWon, optionOneId, optionTwoId],
+                            tokenURIs: [...this.state.tokenURIs, CARD_ARRAY[optionOneId].img]
+                        })
+                    })
+                    .on('error', (error) => {
+                        console.log(error)
+                    })
+            }
 
         }
+
+      
 
         setTimeout(() => {
             this.setState({
@@ -195,7 +194,7 @@ class App extends Component {
                         href="/"
                         rel="noopener noreferrer"
                     >
-                        <img src={brain} width="30" height="30" className="d-inline-block align-top" alt=""/>
+                        <img src={brain} width="30" height="30" className="d-inline-block align-top" alt="" />
                         &nbsp; Memory Tokens
                     </a>
                     <ul className="navbar-nav px-3">
@@ -207,43 +206,44 @@ class App extends Component {
                 <div className="container-fluid mt-5">
                     <div className="row">
                         <main role="main" className="col-lg-12 d-flex text-center">
-                            <div className="content mr-auto ml-auto">
-                                <h1 className="d-4">Play Nos!</h1>
+                            <div className="content">
+                                <h1 className="d-4">Play Nows!</h1>
 
-                                <div className="grid mb-4">
-
-                                    {this.state.cardArray.map((card, key) => {
-                                        return (
-                                            <img
-                                                key={key}
-                                                src={this.chooseImage(key)}
-                                                data-id={key}
-                                                onClick={(e) => {
-                                                    let cardId = e.target.getAttribute('data-id')
-                                                    if (!this.state.cardsWon.includes(cardId.toString())) {
-                                                        this.flipCard(cardId);
-                                                    }
-                                                }}
-                                            />
-                                        )
-                                    })}
-
-                                </div>
-
-                                <div>
-
-                                    <h5>Token Collected: <span id="result">&nbsp;  {this.state.tokenURIs.length}</span>
-                                    </h5>
-
-                                    <div className="grid mb-4">
-
-                                        {this.state.tokenURIs.map((tokenURI, key) => {
-                                            return <img key={key} src={tokenURI}/>
+                                <div className="row">
+                                    <div className="col-sm-8">
+                                        {/* <div className="grid mb-4"> */}
+                                        {this.state.cardArray.map((card, key) => {
+                                            return (
+                                                <img
+                                                    key={key}
+                                                    src={this.chooseImage(key)}
+                                                    data-id={key}
+                                                    onClick={(e) => {
+                                                        let cardId = e.target.getAttribute('data-id')
+                                                        if (!this.state.cardsWon.includes(cardId.toString())) {
+                                                            this.flipCard(cardId);
+                                                        }
+                                                    }}
+                                                />
+                                            )
                                         })}
+                                        {/* </div> */}
+                                    </div>
+                                    <div className="col-sm-4">
+                                        <div>
+                                            <h5>Token Collected: <span id="result">&nbsp;  {this.state.tokenURIs.length}</span></h5>
 
+                                            {/* <div className="grid mb-4"> */}
+                                            {this.state.tokenURIs.map((tokenURI, key) => {
+                                                return <img key={key} src={tokenURI} />
+                                            })}
+                                            {/* </div> */}
+                                        </div>
                                     </div>
 
                                 </div>
+
+
 
                             </div>
 
